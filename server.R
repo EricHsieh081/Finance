@@ -32,13 +32,10 @@ shinyServer(function(input,output){
   })
   output$tab <- renderTable({
     stock_price = getSymbols(input$stockid, auto.assign = FALSE)
-    data = switch(input$interval,
-                  "5 days"= stock_price[((nrow(stock_price)-5):nrow(stock_price)),],
-                  "10 days"= stock_price[((nrow(stock_price)-10):nrow(stock_price)),],
-                  "20 days"= stock_price[((nrow(stock_price)-20):nrow(stock_price)),],
-                  "60 days"= stock_price[((nrow(stock_price)-60):nrow(stock_price)),],
-                  "120 days"= stock_price[((nrow(stock_price)-120):nrow(stock_price)),],
-                  "240 days"= stock_price[((nrow(stock_price)-240):nrow(stock_price)),])
+    dayArray<-c(5, 10, 20, 60, 120, 240)
+    buttonArray<-c("5 days", "10 days", "20 days", "60 days", "120 days", "240 days")
+    index = match(input$interval, buttonArray)
+    data = stock_price[((nrow(stock_price)-dayArray[index]):nrow(stock_price)),]
     print(data)
   })
   output$plot2 <- renderPlot({
