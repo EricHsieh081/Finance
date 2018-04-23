@@ -1,21 +1,18 @@
-options(shiny.sanitize.errors = FALSE)
+
 shinyServer(function(input,output){
   library(quantmod)
-  library(strucchange)
-  library(vars)
-  library(tseries)
+  #library(Qaundl)
+  library(ggplot2)
   output$plot <- renderPlot({
-    stock_price = na.omit(getSymbols(input$stockid, auto.assign = FALSE))
-    data = switch(input$interval,
-                  "5 days"= stock_price[((nrow(stock_price)-5):nrow(stock_price)),],
-                  "10 days"= stock_price[((nrow(stock_price)-10):nrow(stock_price)),],
-                  "20 days"= stock_price[((nrow(stock_price)-20):nrow(stock_price)),],
-                  "60 days"= stock_price[((nrow(stock_price)-60):nrow(stock_price)),],
-                  "120 days"= stock_price[((nrow(stock_price)-120):nrow(stock_price)),],
-                  "240 days"= stock_price[((nrow(stock_price)-240):nrow(stock_price)),])
-    if(input$tech=="Do Not Show"){chartSeries(data, theme= "white")}
+    stock_price = getSymbols(input$stockid, auto.assign = FALSE)
+    dayArray<-c(5, 10, 20, 60, 120, 240)
+    buttonArray<-c("5 days", "10 days", "20 days", "60 days", "120 days", "240 days")
+    index = match(input$interval, buttonArray)
+    data = stock_price[((nrow(stock_price)-dayArray[index]):nrow(stock_price)),]
+  
+   if(input$tech=="Do Not Show"){chartSeries(data, theme= "white")}
     else if(input$tech=="MA"){chartSeries(data,theme="white") 
-      plot(addSMA(n=5))}
+        plot(addSMA(n=5))}
     else if(input$tech=="MACD"){
       if(input$interval %in% c("5 days","10 days","20 days")){
         plot(x=10,y=10,main="Can not show less than 26 days.", xaxt= "n", yaxt= "n", xlab="",ylab="", type="n")}
@@ -29,12 +26,12 @@ shinyServer(function(input,output){
     else if(input$tech=="Bollinger Bands"){
       if(input$interval %in% c("5 days", "10 days")){
         plot(x=10, y=10, main= "Can not show less than 20 days.",xaxt="n", yaxt= "n", xlab="",ylab="",type="n")}
-      
+        
       else{chartSeries(data, theme= "white")
         addBBands()}}
   })
   output$tab <- renderTable({
-    stock_price = na.omit(getSymbols(input$stockid, auto.assign = FALSE))
+    stock_price = getSymbols(input$stockid, auto.assign = FALSE)
     data = switch(input$interval,
                   "5 days"= stock_price[((nrow(stock_price)-5):nrow(stock_price)),],
                   "10 days"= stock_price[((nrow(stock_price)-10):nrow(stock_price)),],
@@ -45,43 +42,19 @@ shinyServer(function(input,output){
     print(data)
   })
   output$plot2 <- renderPlot({
-    SP500 = na.omit(getSymbols("^GSPC", auto.assign = FALSE, from= input$dates[1], to= input$dates[2]))
-    if(input$dates[2]-input$dates[1]<5){
-      chartSeries(SP500, theme="white")}
-    else{
-      chartSeries(SP500, theme= "white")
-      plot(addSMA(n=5))}
-  })
+    SP500 = getSymbols("^GSPC", auto.assign = FALSE, from= input$dates[1], to= input$dates[2])
+    chartSeries(SP500, theme= "white")
+    })
   output$tab2 <- renderTable({
-    SP500 = na.omit(getSymbols("^GSPC", auto.assign = FALSE, from= input$dates[1], to= input$dates[2]))
+    SP500 = getSymbols("^GSPC", auto.assign = FALSE, from= input$dates[1], to= input$dates[2])
     print(SP500)
   })
   output$plot3 <- renderPlot({
-    TWII = na.omit(getSymbols("^TWII", auto.assign= FALSE, from= input$dates2[1], to= input$dates2[2]))
-    if(input$dates2[2]-input$dates2[1]<5){
-      chartSeries(TWII, theme= "white")}
-    else{chartSeries(TWII, theme= "white")
-      plot(addSMA(n=5))
-    }})
+    TWII = getSymbols("^TWII", auto.assign= FALSE, from= input$dates[1], to= input$dates[2])
+    chartSeries(TWII, theme= "white")
+  })
   output$tab3 <- renderTable({
-    TWII = na.omit(getSymbols("^TWII", auto.assign= FALSE, from= input$dates2[1], to= input$dates2[2]))
+    TWII = getSymbols("^TWII", auto.assign= FALSE, from= input$dates[1], to= input$dates[2])
     print(TWII)
   })
-  output$print1 <- renderPrint({
-    
-    data = na.omit(getSymbols(input$stockid2, auto.assign = FALSE))
-    if(adf.test(data[,4])$p.value<0.05 & adf.test(data[,5])$p.value<0.05){
-      summary(VAR(data[,c(4,5)], p=1))}
-    
-    else{
-      print("The time series is not stationary.")
-      data_first = diff(data[,c(4,5)])
-      data_first = data_first[-1,]
-      names(data_first) = c(paste0("1st_diff_",names(data_first)[1]),paste0("1st_diff_",names(data_first)[2]))
-      if(adf.test(data_first[,1])$p.value<0.05 & adf.test(data_first[,2])$p.value<0.05){
-        print(VAR(data_first, p=1))
-        print(summary(VAR(data_first,p=1)))}
-      }
-  })
 })
-  
